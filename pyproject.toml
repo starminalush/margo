@@ -74,6 +74,3 @@ docstring-code-line-length = "dynamic"
 
 [tool.ruff.lint.isort]
 case-sensitive = true
-
-
-
