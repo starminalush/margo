@@ -11,6 +11,12 @@ class _WebSearchInput(BaseModel):
     num_samples: int
 
 
+class _WebSearchOutput(BaseModel):
+    paper_url: str
+    content: str
+    title: str
+
+
 class WebSearchTool(BaseTool):
     """Tool that find papers on web."""
 
@@ -25,7 +31,14 @@ class WebSearchTool(BaseTool):
 
     def _run(self, query: str, num_samples: int = 10, run_manager: CallbackManagerForToolRun | None = None) -> Any:
         response = self.tavily_client.search(query=query, max_results=num_samples)
-        return response
+        return [
+            _WebSearchOutput(
+                paper_url=r["url"],
+                content=r["content"],
+                title=r["title"],
+            )
+            for r in response["results"]
+        ]
 
 
 web_search_tool = WebSearchTool()

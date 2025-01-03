@@ -11,6 +11,12 @@ class _ArxivInput(BaseModel):
     num_samples: int
 
 
+class _ArxivOutput(BaseModel):
+    paper_url: str
+    content: str
+    title: str
+
+
 class ArxivTool(BaseTool):
     """Tool that find papers on PaperWithCode."""
 
@@ -26,7 +32,14 @@ class ArxivTool(BaseTool):
     def _run(self, query: str, num_samples: int = 10, run_manager: CallbackManagerForToolRun | None = None) -> Any:
         search = arxiv.Search(query=query, max_results=num_samples, sort_by=arxiv.SortCriterion.SubmittedDate)
         results = self.client.results(search)
-        return results
+        return [
+            _ArxivOutput(
+                paper_url=r.pdf_url,
+                content=r.summary,
+                title=r.title,
+            )
+            for r in results
+        ]
 
 
 arxiv_tool = ArxivTool()
