@@ -14,8 +14,6 @@ from langgraph.graph import StateGraph, START, END
 from src.paper_searcher.agent import search_agent
 
 members = ["paper_searcher", "summarizer"]
-# Our team supervisor is an LLM node. It just picks the next agent to process
-# and decides when the work is completed
 options = members + ["FINISH"]
 
 system_prompt = (
@@ -91,16 +89,15 @@ builder.add_edge(START, "supervisor")
 builder.add_node("supervisor", supervisor_node)
 builder.add_node("paper_searcher", research_node)
 builder.add_node("summarizer", summarizer_node)
-# builder.add_node("paper_consultant", rag_app)
 graph = builder.compile()
 
 
-for s in graph.stream(
-    {
-        "messages": [
-            ("user", "три последние статьи про MoE")
-        ]
-    },
-):
-    print(s)
-    print("----")
+# for s in graph.stream(
+#     {
+#         "messages": [
+#             ("user", "три последние статьи про MoE")
+#         ]
+#     },
+# ):
+#     print(s)
+#     print("----")
