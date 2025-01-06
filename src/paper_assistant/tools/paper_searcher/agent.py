@@ -1,8 +1,8 @@
 from langchain_openai import ChatOpenAI
 
-from src.paper_searcher.arxiv_tool import arxiv_tool
-from src.paper_searcher.papers_with_code_tool import papers_with_code_tool
-from src.paper_searcher.web_search_tool import web_search_tool
+from src.paper_assistant.tools.paper_searcher.arxiv_tool import arxiv_tool
+from src.paper_assistant.tools.paper_searcher.papers_with_code_tool import papers_with_code_tool
+from src.paper_assistant.tools.paper_searcher.web_search_tool import web_search_tool
 
 from langgraph.graph import StateGraph, END
 

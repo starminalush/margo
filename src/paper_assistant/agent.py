@@ -3,17 +3,25 @@ from typing import Literal, Annotated, Sequence
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.messages import HumanMessage, BaseMessage
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
 from typing_extensions import TypedDict
 
 from langgraph.graph import add_messages
 from langgraph.types import Command
 
-from src.paper_assistant.summary_tool import summary_app_tool
+from src.paper_assistant.tools.summary_tool import summary_app_tool
 
 from langgraph.graph import StateGraph, START, END
-from src.paper_searcher.agent import search_agent
+from src.paper_assistant.tools.paper_searcher.agent import search_agent
+from src.paper_assistant.tools.rag_tool import rag_app
 
-members = ["paper_searcher", "summarizer"]
+from langchain.globals import set_debug
+
+set_debug(True)
+
+memory = MemorySaver()
+
+members = ["paper_searcher"]
 options = members + ["FINISH"]
 
 system_prompt = (
@@ -23,7 +31,6 @@ system_prompt = (
     " task and respond with their results and status. "
     " Description of Workers: "
     " - paper_searcher - used to find articles on the internet based on a query. "
-    " - summarizer - used to provide a brief summary of a found article or to describe what the article is about when requested. "
     "When finished,"
     " respond with FINISH."
 )
@@ -55,6 +62,18 @@ def supervisor_node(state: PaperAssistantState) -> Command[Literal[*members, "__
     return Command(goto=goto)
 
 
+def rag_node(state: PaperAssistantState):
+    question = state["messages"][-1]
+    r = rag_app.invoke(input={"question": question, "urls": state['urls']})
+    return Command(
+        update={
+            "messages": [HumanMessage(content=r["messages"][-1].content, name="consultant")],
+            "urls": r["urls"],
+        },
+        goto="supervisor",
+    )
+
+
 def research_node(state: PaperAssistantState):
     question = state["messages"][0]
     r = search_agent.invoke(input={"messages": [question]})
@@ -74,7 +93,7 @@ def summarizer_node(state: PaperAssistantState):
 
     from langchain_text_splitters import CharacterTextSplitter
 
-    text_splitter = CharacterTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=0)
+    text_splitter = CharacterTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=150)
     split_docs = text_splitter.split_documents(docs)
 
     summary = summary_app_tool.invoke({"contents": [doc.page_content for doc in split_docs]})
@@ -88,16 +107,23 @@ builder = StateGraph(PaperAssistantState)
 builder.add_edge(START, "supervisor")
 builder.add_node("supervisor", supervisor_node)
 builder.add_node("paper_searcher", research_node)
-builder.add_node("summarizer", summarizer_node)
-graph = builder.compile()
+# builder.add_node("summarizer", summarizer_node)
+builder.add_node("consultant", rag_node)
+graph = builder.compile(checkpointer=memory)
+
+config = {"configurable": {"thread_id": "1"}}
+
+for s in graph.stream(
+    {
+        "messages": [
+            ("user", "найди мне статью про внимание в мл")
+        ]
+    },
+    config=config,
+):
+    print(s)
+    print("----")
 
 
-# for s in graph.stream(
-#     {
-#         "messages": [
-#             ("user", "три последние статьи про MoE")
-#         ]
-#     },
-# ):
-#     print(s)
-#     print("----")
+
+

@@ -326,3 +326,5 @@ workflow.add_conditional_edges(
 
 # Compile
 rag_app = workflow.compile()
+
+
