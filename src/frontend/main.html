@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат с ИИ по PDF</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="pdf-container">
+            <canvas id="pdf-canvas"></canvas>
+            <div class="navigation">
+                <button id="prev-page" class="nav-btn">Назад</button>
+                <span id="page-num"></span> / <span id="page-count"></span>
+                <button id="next-page" class="nav-btn">Вперед</button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="history">
+                <h3>История запросов по каждому pdf файлу</h3>
+                <div class="history-item">
+                    <h4>Запрос 1</h4>
+                    <p>Саммари и заметки...</p>
+                </div>
+                <div class="history-item">
+                    <h4>Запрос 2</h4>
+                    <p>Саммари и заметки...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <h3>Чат с ИИ</h3>
+            <textarea id="chat-input" placeholder="Задайте вопрос по статье..."></textarea>
+            <button id="ask-btn">Задать вопрос</button>
+            <div id="chat-output"></div>
+        </div>
+    </div>
+
+    <div class="file-upload">
+        <input type="file" id="pdf-upload" accept="application/pdf">
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
