@@ -97,5 +97,3 @@ graph.add_conditional_edges("collapse_summaries", should_collapse)
 graph.add_edge("generate_final_summary", END)
 
 summary_app_tool = graph.compile()
-
-

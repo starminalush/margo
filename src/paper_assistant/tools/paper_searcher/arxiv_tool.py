@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 class _ArxivInput(BaseModel):
     query: str
-    num_samples: int
 
 
 class _ArxivOutput(BaseModel):

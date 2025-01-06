@@ -1,6 +1,6 @@
+import logging
 from typing import Literal, Annotated, Sequence
 
-from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.messages import HumanMessage, BaseMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
@@ -9,15 +9,15 @@ from typing_extensions import TypedDict
 from langgraph.graph import add_messages
 from langgraph.types import Command
 
-from src.paper_assistant.tools.summary_tool import summary_app_tool
 
 from langgraph.graph import StateGraph, START, END
-from src.paper_assistant.tools.paper_searcher.agent import search_agent
-from src.paper_assistant.tools.rag_tool import rag_app
+from paper_assistant.tools.paper_searcher.agent import search_agent
+from paper_assistant.tools.rag_tool import rag_app
 
-from langchain.globals import set_debug
+from langchain.globals import set_debug, set_verbose
 
 set_debug(True)
+set_verbose(True)
 
 memory = MemorySaver()
 
@@ -47,7 +47,7 @@ llm = ChatOpenAI(model="gpt-4o-mini")
 
 class PaperAssistantState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    urls: list[str] | None = None
+    found_results: list[dict]
 
 
 def supervisor_node(state: PaperAssistantState) -> Command[Literal[*members, "__end__"]]:
@@ -64,11 +64,11 @@ def supervisor_node(state: PaperAssistantState) -> Command[Literal[*members, "__
 
 def rag_node(state: PaperAssistantState):
     question = state["messages"][-1]
-    r = rag_app.invoke(input={"question": question, "urls": state['urls']})
+    r = rag_app.invoke(input={"question": question, "found_results": state["found_results"]})
     return Command(
         update={
             "messages": [HumanMessage(content=r["messages"][-1].content, name="consultant")],
-            "urls": r["urls"],
+            "found_results": r["found_results"],
         },
         goto="supervisor",
     )
@@ -76,29 +76,12 @@ def rag_node(state: PaperAssistantState):
 
 def research_node(state: PaperAssistantState):
     question = state["messages"][0]
-    r = search_agent.invoke(input={"messages": [question]})
+    r = search_agent.invoke({"input": question, "chat_history": []})
+    logging.getLogger().info(r)
     return Command(
         update={
-            "messages": [HumanMessage(content=r["messages"][-1].content, name="paper_searcher")],
-            "urls": r["urls"],
+            "messages": [HumanMessage(content=r['main_body'], name="paper_searcher")],
         },
-        goto="supervisor",
-    )
-
-
-def summarizer_node(state: PaperAssistantState):
-    urls = state["urls"]
-    loader = WebBaseLoader(web_path=urls)
-    docs = loader.load()
-
-    from langchain_text_splitters import CharacterTextSplitter
-
-    text_splitter = CharacterTextSplitter.from_tiktoken_encoder(chunk_size=1000, chunk_overlap=150)
-    split_docs = text_splitter.split_documents(docs)
-
-    summary = summary_app_tool.invoke({"contents": [doc.page_content for doc in split_docs]})
-    return Command(
-        update={"messages": [HumanMessage(content=summary["final_summary"], name="summarizer")], "urls": urls},
         goto="supervisor",
     )
 
@@ -107,23 +90,14 @@ builder = StateGraph(PaperAssistantState)
 builder.add_edge(START, "supervisor")
 builder.add_node("supervisor", supervisor_node)
 builder.add_node("paper_searcher", research_node)
-# builder.add_node("summarizer", summarizer_node)
-builder.add_node("consultant", rag_node)
 graph = builder.compile(checkpointer=memory)
 
 config = {"configurable": {"thread_id": "1"}}
 
-for s in graph.stream(
-    {
-        "messages": [
-            ("user", "найди мне статью про внимание в мл")
-        ]
-    },
-    config=config,
-):
-    print(s)
-    print("----")
 
-
-
-
+def get_answer(question: str):
+    result = graph.invoke(
+        {"messages": [("user", question)]},
+        config=config,
+    )
+    return result

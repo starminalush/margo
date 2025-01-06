@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 class _PapersWithCodeInput(BaseModel):
     query: str
-    num_samples: int
 
 
 class _PapersWithCodeOutput(BaseModel):

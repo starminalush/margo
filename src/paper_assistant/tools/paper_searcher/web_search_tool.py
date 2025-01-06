@@ -8,7 +8,6 @@ from tavily import TavilyClient
 
 class _WebSearchInput(BaseModel):
     query: str
-    num_samples: int
 
 
 class _WebSearchOutput(BaseModel):
