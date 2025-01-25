@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "margo"
+version = "0.1.0"
+description = ""
+authors = ["starminalush <alica154323@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+langchain-core = "^0.3.31"
+langchain-mistralai = "^0.2.4"
+sentence-transformers = "^3.4.0"
+langgraph = "^0.2.67"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,9 +1,8 @@
 import logging
-import tempfile
 from typing import Literal, Annotated, Sequence
 
-from langchain_community.document_loaders import PyPDFLoader, PyMuPDFLoader
-from langchain_core.messages import HumanMessage, BaseMessage, AIMessage
+from langchain_community.document_loaders import PyMuPDFLoader
+from langchain_core.messages import BaseMessage, AIMessage
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.checkpoint.memory import MemorySaver
@@ -59,8 +58,9 @@ class PaperAssistantState(TypedDict):
     answer: str
 
 
-
-def supervisor_node(state: PaperAssistantState) -> Command[Literal[*members, "__end__"]]:
+def supervisor_node(
+    state: PaperAssistantState,
+) -> Command[Literal[*members, "__end__"]]:
     messages = [
         {"role": "system", "content": system_prompt},
     ] + state["messages"]
@@ -74,18 +74,18 @@ def supervisor_node(state: PaperAssistantState) -> Command[Literal[*members, "__
 
 def rag_node(state: PaperAssistantState):
     question = state["messages"][0].content
-    loader = PyMuPDFLoader(state['found_results']['paper_url'])
+    loader = PyMuPDFLoader(state["found_results"]["paper_url"])
     docs = loader.load()
 
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-    chunk_size=500, chunk_overlap=0
-)
+        chunk_size=500, chunk_overlap=0
+    )
     split_docs = text_splitter.split_documents(docs)
     r = rag_app.invoke({"question": question, "data": split_docs})
     return Command(
         update={
             "messages": [AIMessage(content=r["generation"], name="consultant")],
-            "answer": r["generation"]
+            "answer": r["generation"],
         },
         goto="supervisor",
     )
@@ -97,14 +97,17 @@ def research_node(state: PaperAssistantState):
     logging.getLogger().info(r)
     return Command(
         update={
-            "messages": [AIMessage(content=r['messages'][-1].content, name="paper_searcher")],
-            'found_results': r['found_results'][0]
+            "messages": [
+                AIMessage(content=r["messages"][-1].content, name="paper_searcher")
+            ],
+            "found_results": r["found_results"][0],
         },
         goto="supervisor",
     )
 
+
 def summary_node(state: PaperAssistantState):
-    loader = PyMuPDFLoader(state['found_results']['paper_url'])
+    loader = PyMuPDFLoader(state["found_results"]["paper_url"])
     docs = loader.load()
     from langchain_text_splitters import CharacterTextSplitter
 
@@ -113,13 +116,15 @@ def summary_node(state: PaperAssistantState):
     )
     split_docs = text_splitter.split_documents(docs)
 
-    result = summary_app_tool.invoke({"contents": [doc.page_content for doc in split_docs]})
+    result = summary_app_tool.invoke(
+        {"contents": [doc.page_content for doc in split_docs]}
+    )
     return Command(
         update={
-            "answer": result['final_summary'],
-            "messages": [AIMessage(content=result['final_summary'], name="summarizer")],
+            "answer": result["final_summary"],
+            "messages": [AIMessage(content=result["final_summary"], name="summarizer")],
         },
-        goto='supervisor'
+        goto="supervisor",
     )
 
 
@@ -134,11 +139,9 @@ graph = builder.compile(checkpointer=memory)
 config = {"configurable": {"thread_id": "1"}}
 
 
-def get_answer(question: str)->str:
+def get_answer(question: str) -> str:
     result = graph.invoke(
         {"messages": [("user", question)]},
         config=config,
     )
-    return result['answer']
-
-
+    return result["answer"]

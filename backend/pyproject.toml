@@ -18,5 +18,3 @@ arxiv = "^2.1.3"
 langchain-openai = "^0.2.10"
 beautifulsoup4 = "^4.12.3"
 chromadb = "^0.6.0"
-
-

@@ -29,15 +29,22 @@ class ArxivTool(BaseTool):
     args_schema: Type[BaseModel] = _ArxivInput
     client: arxiv.Client = arxiv.Client()
 
-    def _run(self, query: str, num_samples: int = 10, run_manager: CallbackManagerForToolRun | None = None) -> Any:
-        search = arxiv.Search(query=query, max_results=num_samples, sort_by=arxiv.SortCriterion.Relevance)
+    def _run(
+        self,
+        query: str,
+        num_samples: int = 10,
+        run_manager: CallbackManagerForToolRun | None = None,
+    ) -> Any:
+        search = arxiv.Search(
+            query=query, max_results=num_samples, sort_by=arxiv.SortCriterion.Relevance
+        )
         results = self.client.results(search)
         return [
             _ArxivOutput(
                 paper_url=r.pdf_url,
                 content=r.summary,
                 title=r.title,
-                paper_id=r.entry_id
+                paper_id=r.entry_id,
             )
             for r in results
         ]

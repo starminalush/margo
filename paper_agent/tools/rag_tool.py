@@ -10,7 +10,6 @@ from typing import List
 
 from typing_extensions import TypedDict
 from langgraph.graph import END, StateGraph, START
-from pprint import pprint
 
 embd = OpenAIEmbeddings()
 
@@ -20,7 +19,9 @@ llm = ChatOpenAI(model="gpt-4o-mini")
 
 # Data model
 class GradeDocuments(BaseModel):
-    binary_score: str = Field(description="Documents are relevant to the question, 'yes' or 'no'")
+    binary_score: str = Field(
+        description="Documents are relevant to the question, 'yes' or 'no'"
+    )
 
 
 structured_llm_grader = llm.with_structured_output(GradeDocuments)
@@ -58,7 +59,9 @@ rag_chain = prompt | llm | StrOutputParser()
 class GradeHallucinations(BaseModel):
     """Binary score for hallucination present in generation answer."""
 
-    binary_score: str = Field(description="Answer is grounded in the facts, 'yes' or 'no'")
+    binary_score: str = Field(
+        description="Answer is grounded in the facts, 'yes' or 'no'"
+    )
 
 
 # LLM with function call
@@ -80,7 +83,9 @@ hallucination_grader = hallucination_prompt | structured_llm_grader
 class GradeAnswer(BaseModel):
     """Binary score to assess answer addresses question."""
 
-    binary_score: str = Field(description="Answer addresses the question, 'yes' or 'no'")
+    binary_score: str = Field(
+        description="Answer addresses the question, 'yes' or 'no'"
+    )
 
 
 # LLM with function call
@@ -143,7 +148,7 @@ def retrieve(state):
     print("---RETRIEVE---")
     reset_retry_flag()
     question = state["question"]
-    split_docs = state['data']
+    split_docs = state["data"]
 
     # Add to vectorstore
     vectorstore = Chroma.from_documents(
@@ -194,7 +199,9 @@ def grade_documents(state):
     # Score each doc
     filtered_docs = []
     for d in documents:
-        score = retrieval_grader.invoke({"question": question, "document": d.page_content})
+        score = retrieval_grader.invoke(
+            {"question": question, "document": d.page_content}
+        )
         grade = score.binary_score
         if grade == "yes":
             print("---GRADE: DOCUMENT RELEVANT---")
@@ -242,14 +249,18 @@ def decide_to_generate(state):
     if not filtered_documents:
         # All documents have been filtered check_relevance
         # We will re-generate a new query
-        print("---DECISION: ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, TRANSFORM QUERY---")
+        print(
+            "---DECISION: ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, TRANSFORM QUERY---"
+        )
         return "transform_query"
     else:
         # We have relevant documents, so generate answer
         print("---DECISION: GENERATE---")
         return "generate"
 
+
 retry_generation = False
+
 
 def grade_generation_v_documents_and_question(state):
     """
@@ -269,7 +280,9 @@ def grade_generation_v_documents_and_question(state):
     documents = state["documents"]
     generation = state["generation"]
 
-    score = hallucination_grader.invoke({"documents": documents, "generation": generation})
+    score = hallucination_grader.invoke(
+        {"documents": documents, "generation": generation}
+    )
     grade = score.binary_score
 
     # Check hallucination
@@ -287,18 +300,26 @@ def grade_generation_v_documents_and_question(state):
             return "not useful"
     else:
         if not retry_generation:
-            print("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETRYING...---")
+            print(
+                "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETRYING...---"
+            )
             retry_generation = True
             return "not supported"
         else:
-            print("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETURNING ANYWAY---")
-            state["generation"] += "\n\nNote: The model believes this answer is correct, but there is a possibility of error."
+            print(
+                "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETURNING ANYWAY---"
+            )
+            state["generation"] += (
+                "\n\nNote: The model believes this answer is correct, but there is a possibility of error."
+            )
             return "useful"
+
 
 # Сброс флага перед запуском воркфлоу
 def reset_retry_flag():
     global retry_generation
     retry_generation = False
+
 
 workflow = StateGraph(GraphState)
 

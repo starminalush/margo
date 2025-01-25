@@ -17,8 +17,10 @@ from langgraph.graph.message import add_messages
 
 class AgentState(TypedDict):
     """The state of the agent."""
+
     messages: Annotated[Sequence[BaseMessage], add_messages]
     found_results: list[dict]
+
 
 llm = ChatOpenAI(model="gpt-4o-mini")
 
