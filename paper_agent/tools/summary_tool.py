@@ -31,7 +31,6 @@ def length_function(documents: List[Document]) -> int:
 
 
 class OverallState(TypedDict):
-    data: str
     contents: List[str]
     summaries: Annotated[list, operator.add]
     collapsed_summaries: List[Document]
@@ -43,15 +42,9 @@ class SummaryState(TypedDict):
 
 
 def generate_summary(state: SummaryState):
-    from langchain_text_splitters import CharacterTextSplitter
-
-    text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
-        chunk_size=1000, chunk_overlap=0
-    )
-    split_docs = text_splitter.split_documents(state['data'])
-    prompt = map_prompt.invoke(state[])
-    response = llm.invoke(prompt)
-    return {"summaries": [response.content], 'contents': split_docs}
+    prompt = map_prompt.invoke(state["content"])
+    response =  llm.invoke(prompt)
+    return {"summaries": [response.content]}
 
 
 def map_summaries(state: OverallState):
@@ -107,13 +100,4 @@ graph.add_edge("generate_final_summary", END)
 summary_app_tool = graph.compile()
 
 
-paper_url = "https://arxiv.org/abs/1810.04805"
-loader = WebBaseLoader(paper_url)
-loader.requests_kwargs = {'verify': False}
-docs = loader.load()
 
-
-result = summary_app_tool.invoke({"data": docs})
-
-
-print(result)

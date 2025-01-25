@@ -1,7 +1,5 @@
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
-from langchain_community.document_loaders import WebBaseLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -127,8 +125,9 @@ class GraphState(TypedDict):
 
     question: str
     generation: str
-    urls: list[str]
     documents: List[str]
+
+    data: list[str]
 
 
 def retrieve(state):
@@ -142,19 +141,13 @@ def retrieve(state):
         state (dict): New key added to state, documents, that contains retrieved documents
     """
     print("---RETRIEVE---")
+    reset_retry_flag()
     question = state["question"]
-    urls = state["urls"]
-
-    docs = [WebBaseLoader(url).load() for url in urls]
-    docs_list = [item for sublist in docs for item in sublist]
-
-    # Split
-    text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(chunk_size=500, chunk_overlap=10)
-    doc_splits = text_splitter.split_documents(docs_list)
+    split_docs = state['data']
 
     # Add to vectorstore
     vectorstore = Chroma.from_documents(
-        documents=doc_splits,
+        documents=split_docs,
         collection_name="rag-chroma",
         embedding=embd,
     )
@@ -256,6 +249,7 @@ def decide_to_generate(state):
         print("---DECISION: GENERATE---")
         return "generate"
 
+retry_generation = False
 
 def grade_generation_v_documents_and_question(state):
     """
@@ -267,6 +261,8 @@ def grade_generation_v_documents_and_question(state):
     Returns:
         str: Decision for next node to call
     """
+
+    global retry_generation
 
     print("---CHECK HALLUCINATIONS---")
     question = state["question"]
@@ -290,9 +286,19 @@ def grade_generation_v_documents_and_question(state):
             print("---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
             return "not useful"
     else:
-        pprint("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
-        return "not supported"
+        if not retry_generation:
+            print("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETRYING...---")
+            retry_generation = True
+            return "not supported"
+        else:
+            print("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETURNING ANYWAY---")
+            state["generation"] += "\n\nNote: The model believes this answer is correct, but there is a possibility of error."
+            return "useful"
 
+# Сброс флага перед запуском воркфлоу
+def reset_retry_flag():
+    global retry_generation
+    retry_generation = False
 
 workflow = StateGraph(GraphState)
 
