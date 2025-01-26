@@ -1,18 +1,18 @@
-from langgraph.constants import END
-from langgraph.graph import StateGraph
-
-from paper_agent.tools.paper_searcher.arxiv_tool import arxiv_tool
-
-
-from langchain_openai import ChatOpenAI
-
+import json
 from typing import (
     Annotated,
     Sequence,
     TypedDict,
 )
-from langchain_core.messages import BaseMessage
+
+from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
+from langchain_openai import ChatOpenAI
+from langgraph.constants import END
+from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
+
+from paper_agent.tools.paper_searcher.arxiv_tool import arxiv_tool
 
 
 class AgentState(TypedDict):
@@ -29,9 +29,6 @@ tools = [arxiv_tool]
 
 model = llm.bind_tools(tools)
 
-import json
-from langchain_core.messages import ToolMessage, SystemMessage
-from langchain_core.runnables import RunnableConfig
 
 tools_by_name = {tool.name: tool for tool in tools}
 
@@ -107,3 +104,8 @@ workflow.add_edge("tools", "agent")
 
 # Now we can compile and visualize our graph
 search_agent = workflow.compile()
+
+
+def search_papers(question: str):
+    answer = search_agent.invoke({"messages": [question]})
+    return answer["found_results"]

@@ -35,9 +35,7 @@ class ArxivTool(BaseTool):
         num_samples: int = 10,
         run_manager: CallbackManagerForToolRun | None = None,
     ) -> Any:
-        search = arxiv.Search(
-            query=query, max_results=num_samples, sort_by=arxiv.SortCriterion.Relevance
-        )
+        search = arxiv.Search(query=query, max_results=num_samples, sort_by=arxiv.SortCriterion.Relevance)
         results = self.client.results(search)
         return [
             _ArxivOutput(

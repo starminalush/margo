@@ -1,15 +1,13 @@
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
-from langchain import hub
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
-
-from pydantic import BaseModel, Field
 from typing import List
 
+from langchain import hub
+from langchain_community.vectorstores import Chroma
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langgraph.graph import END, START, StateGraph
+from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
-from langgraph.graph import END, StateGraph, START
 
 embd = OpenAIEmbeddings()
 
@@ -19,9 +17,7 @@ llm = ChatOpenAI(model="gpt-4o-mini")
 
 # Data model
 class GradeDocuments(BaseModel):
-    binary_score: str = Field(
-        description="Documents are relevant to the question, 'yes' or 'no'"
-    )
+    binary_score: str = Field(description="Documents are relevant to the question, 'yes' or 'no'")
 
 
 structured_llm_grader = llm.with_structured_output(GradeDocuments)
@@ -59,9 +55,7 @@ rag_chain = prompt | llm | StrOutputParser()
 class GradeHallucinations(BaseModel):
     """Binary score for hallucination present in generation answer."""
 
-    binary_score: str = Field(
-        description="Answer is grounded in the facts, 'yes' or 'no'"
-    )
+    binary_score: str = Field(description="Answer is grounded in the facts, 'yes' or 'no'")
 
 
 # LLM with function call
@@ -83,9 +77,7 @@ hallucination_grader = hallucination_prompt | structured_llm_grader
 class GradeAnswer(BaseModel):
     """Binary score to assess answer addresses question."""
 
-    binary_score: str = Field(
-        description="Answer addresses the question, 'yes' or 'no'"
-    )
+    binary_score: str = Field(description="Answer addresses the question, 'yes' or 'no'")
 
 
 # LLM with function call
@@ -199,9 +191,7 @@ def grade_documents(state):
     # Score each doc
     filtered_docs = []
     for d in documents:
-        score = retrieval_grader.invoke(
-            {"question": question, "document": d.page_content}
-        )
+        score = retrieval_grader.invoke({"question": question, "document": d.page_content})
         grade = score.binary_score
         if grade == "yes":
             print("---GRADE: DOCUMENT RELEVANT---")
@@ -249,9 +239,7 @@ def decide_to_generate(state):
     if not filtered_documents:
         # All documents have been filtered check_relevance
         # We will re-generate a new query
-        print(
-            "---DECISION: ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, TRANSFORM QUERY---"
-        )
+        print("---DECISION: ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, TRANSFORM QUERY---")
         return "transform_query"
     else:
         # We have relevant documents, so generate answer
@@ -280,9 +268,7 @@ def grade_generation_v_documents_and_question(state):
     documents = state["documents"]
     generation = state["generation"]
 
-    score = hallucination_grader.invoke(
-        {"documents": documents, "generation": generation}
-    )
+    score = hallucination_grader.invoke({"documents": documents, "generation": generation})
     grade = score.binary_score
 
     # Check hallucination
@@ -300,15 +286,11 @@ def grade_generation_v_documents_and_question(state):
             return "not useful"
     else:
         if not retry_generation:
-            print(
-                "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETRYING...---"
-            )
+            print("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETRYING...---")
             retry_generation = True
             return "not supported"
         else:
-            print(
-                "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETURNING ANYWAY---"
-            )
+            print("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RETURNING ANYWAY---")
             state["generation"] += (
                 "\n\nNote: The model believes this answer is correct, but there is a possibility of error."
             )

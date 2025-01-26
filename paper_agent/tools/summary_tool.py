@@ -1,21 +1,19 @@
 import operator
 from typing import Annotated, List, Literal, TypedDict
 
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 from langchain.chains.combine_documents.reduce import (
     collapse_docs,
     split_list_of_docs,
 )
 from langchain_core.documents import Document
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
 from langgraph.constants import Send
 from langgraph.graph import END, START, StateGraph
 
 token_max = 1000
 llm = ChatOpenAI(model="gpt-4o-mini")
-map_prompt = ChatPromptTemplate.from_messages(
-    [("system", "Write a concise summary of the following:\\n\\n{context}")]
-)
+map_prompt = ChatPromptTemplate.from_messages([("system", "Write a concise summary of the following:\\n\\n{context}")])
 reduce_template = """
 The following is a set of summaries:
 {docs}
@@ -49,15 +47,11 @@ def generate_summary(state: SummaryState):
 
 
 def map_summaries(state: OverallState):
-    return [
-        Send("generate_summary", {"content": content}) for content in state["contents"]
-    ]
+    return [Send("generate_summary", {"content": content}) for content in state["contents"]]
 
 
 def collect_summaries(state: OverallState):
-    return {
-        "collapsed_summaries": [Document(summary) for summary in state["summaries"]]
-    }
+    return {"collapsed_summaries": [Document(summary) for summary in state["summaries"]]}
 
 
 def _reduce(input: dict) -> str:
@@ -67,9 +61,7 @@ def _reduce(input: dict) -> str:
 
 
 def collapse_summaries(state: OverallState):
-    doc_lists = split_list_of_docs(
-        state["collapsed_summaries"], length_function, token_max
-    )
+    doc_lists = split_list_of_docs(state["collapsed_summaries"], length_function, token_max)
     results = []
     for doc_list in doc_lists:
         results.append(collapse_docs(doc_list, _reduce))
