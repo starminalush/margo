@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.api.endpoints import health, search
+from api.endpoints import health, search
 
 router = APIRouter()
 
