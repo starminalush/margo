@@ -121,6 +121,7 @@ builder = StateGraph(PaperAssistantState)
 builder.add_edge(START, "supervisor")
 builder.add_node("supervisor", supervisor_node)
 builder.add_node("consultant", rag_node)
+builder.add_node("researcher", research_node)
 builder.add_node("summarizer", summary_node)
 graph = builder.compile(checkpointer=memory)
 
