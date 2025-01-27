@@ -5,20 +5,18 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph, add_messages
 from langgraph.types import Command
 from typing_extensions import TypedDict
 
+from paper_agent.tools.paper_searcher.agent import search_agent
 from paper_agent.tools.rag_tool import rag_app
 from paper_agent.tools.summary_tool import summary_app_tool
 
 set_debug(True)
 set_verbose(True)
 
-memory = MemorySaver()
-
-members = ["summarizer", "consultant"]
+members = ["paper_searcher", "summarizer", "consultant"]
 options = members + ["FINISH"]
 
 system_prompt = (
@@ -27,13 +25,14 @@ system_prompt = (
     " respond with the worker to act next. Each worker will perform a"
     " task and respond with their results and status. "
     " Description of Workers: "
+    " - paper_searcher - used to find articles on the internet based on a query. "
     " - summarizer - Used to provide a brief summary of the paper. Trigger only when the user explicitly asks for an overview, general content, or the main ideas of the paper (e.g., Summarize the paper,  Give a brief overview) "
     " - consultant - Used for answering any specific questions about the paper that require detailed information, clarification, analysis, or references to specific sections (e.g., What pre-training techniques are used in BERT? or Explain how the model achieves bidirectionality) "
     " You should never call same worker twice. "
+    " Always call paper_searcher before summarizer or consultant "
     "When finished,"
     " respond with FINISH."
 )
-
 
 class Router(TypedDict):
     """Worker to route to next. If no workers needed, route to FINISH."""
@@ -81,21 +80,20 @@ def rag_node(state: PaperAssistantState):
     )
 
 
-# def research_node(state: PaperAssistantState):
-#     question = state["messages"][0].content
-#     r = search_agent.invoke({"messages": [question]})
-#     logging.getLogger().info(r)
-#     return Command(
-#         update={
-#             "messages": [
-#                 AIMessage(content=r["messages"][-1].content, name="paper_searcher")
-#             ],
-#             "found_results": r["found_results"][0],
-#             "answer": r["found_results"]
-#         },
-#         goto="supervisor",
-#     )
-#
+def research_node(state: PaperAssistantState):
+    question = state["messages"][0].content
+    r = search_agent.invoke({"messages": [question]})
+    return Command(
+        update={
+            "messages": [
+                AIMessage(content=r["messages"][-1].content, name="paper_searcher")
+            ],
+            "found_results": r["found_results"][0],
+            "answer": r["found_results"]
+        },
+        goto="supervisor",
+    )
+
 
 
 def summary_node(state: PaperAssistantState):
@@ -132,3 +130,16 @@ def get_answer(question: str, paper_url: str = None) -> str:
         config=config,
     )
     return result["answer"]
+
+
+from IPython.display import Image, display
+from langchain_core.runnables.graph import  MermaidDrawMethod
+
+img = Image(
+        graph.get_graph().draw_mermaid_png(
+            draw_method=MermaidDrawMethod.API,
+        )
+    )
+
+with open('test.jpg', 'wb') as file:
+    file.write(img.data)
