@@ -19,7 +19,7 @@ set_verbose(True)
 
 memory = MemorySaver()
 
-members = ["paper_searcher", "summarizer", "consultant"]
+members = ["researcher", "summarizer", "consultant"]
 options = members + ["FINISH"]
 
 system_prompt = (
@@ -28,7 +28,7 @@ system_prompt = (
     " respond with the worker to act next. Each worker will perform a"
     " task and respond with their results and status. "
     " Description of Workers: "
-    " - paper_searcher - used to find articles on the internet based on a query. "
+    " - researcher - used to find articles on the internet based on a query. "
     " - summarizer - Used to provide a brief summary of the paper. Trigger only when the user explicitly asks for an overview, general content, or the main ideas of the paper (e.g., Summarize the paper,  Give a brief overview) "
     " - consultant - Used for answering any specific questions about the paper that require detailed information, clarification, analysis, or references to specific sections (e.g., What pre-training techniques are used in BERT? or Explain how the model achieves bidirectionality) "
     " You should never call same worker twice. "
@@ -134,16 +134,3 @@ def get_answer(question: str, paper_url: str = None) -> str:
         config=config,
     )
     return result["answer"]
-
-
-from IPython.display import Image, display
-from langchain_core.runnables.graph import  MermaidDrawMethod
-
-img = Image(
-        graph.get_graph().draw_mermaid_png(
-            draw_method=MermaidDrawMethod.API,
-        )
-    )
-
-with open('test.jpg', 'wb') as file:
-    file.write(img.data)
