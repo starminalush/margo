@@ -5,6 +5,7 @@ from langchain_community.document_loaders import PyMuPDFLoader
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph, add_messages
 from langgraph.types import Command
 from typing_extensions import TypedDict
@@ -15,6 +16,8 @@ from paper_agent.tools.summary_tool import summary_app_tool
 
 set_debug(True)
 set_verbose(True)
+
+memory = MemorySaver()
 
 members = ["paper_searcher", "summarizer", "consultant"]
 options = members + ["FINISH"]
