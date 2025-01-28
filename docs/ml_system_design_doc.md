@@ -86,7 +86,7 @@ Margo - интеллектуальный ассистент-исследоват
 - кэш для уже найденной информации
 
 #### 2.2. Блок-схема решения
-![block scheme.png](images/block scheme.png)
+![blockscheme.png](images/blockscheme.png)
 
 #### 2.3. Этапы решения задачи
 
