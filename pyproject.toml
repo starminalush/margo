@@ -6,7 +6,7 @@ authors = ["starminalush <alica154323@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.11"
 tavily-python = "^0.5.0"
 langgraph = "^0.2.53"
 langchain-community = "^0.3.8"
@@ -22,7 +22,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-src = ["src"]
+src = ["backend", "paper_agent", "tg_bot"]
 # Exclude a variety of commonly ignored directories.
 exclude = [
     ".bzr",
